@@ -1,0 +1,110 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="lz4">
+      <UniqueIdentifier>{108f34f8-825f-4a47-b0d5-7df32bcbe465}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Lzma">
+      <UniqueIdentifier>{4083aee4-f235-4f89-8374-8b6bdef71a33}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="lz4\lz4frame.c">
+      <Filter>lz4</Filter>
+    </ClCompile>
+    <ClCompile Include="lz4\lz4hc.c">
+      <Filter>lz4</Filter>
+    </ClCompile>
+    <ClCompile Include="lz4\xxhash.c">
+      <Filter>lz4</Filter>
+    </ClCompile>
+    <ClCompile Include="lz4\lz4.c">
+      <Filter>lz4</Filter>
+    </ClCompile>
+    <ClCompile Include="Lzma\7zFile.c">
+      <Filter>Lzma</Filter>
+    </ClCompile>
+    <ClCompile Include="Lzma\7zStream.c">
+      <Filter>Lzma</Filter>
+    </ClCompile>
+    <ClCompile Include="Lzma\Alloc.c">
+      <Filter>Lzma</Filter>
+    </ClCompile>
+    <ClCompile Include="Lzma\LzFind.c">
+      <Filter>Lzma</Filter>
+    </ClCompile>
+    <ClCompile Include="Lzma\LzFindMt.c">
+      <Filter>Lzma</Filter>
+    </ClCompile>
+    <ClCompile Include="Lzma\LzmaDec.c">
+      <Filter>Lzma</Filter>
+    </ClCompile>
+    <ClCompile Include="Lzma\LzmaEnc.c">
+      <Filter>Lzma</Filter>
+    </ClCompile>
+    <ClCompile Include="Lzma\Threads.c">
+      <Filter>Lzma</Filter>
+    </ClCompile>
+    <ClCompile Include="AssetBundleDecoder.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="lz4\lz4frame.h">
+      <Filter>lz4</Filter>
+    </ClInclude>
+    <ClInclude Include="lz4\lz4frame_static.h">
+      <Filter>lz4</Filter>
+    </ClInclude>
+    <ClInclude Include="lz4\lz4hc.h">
+      <Filter>lz4</Filter>
+    </ClInclude>
+    <ClInclude Include="lz4\lz4opt.h">
+      <Filter>lz4</Filter>
+    </ClInclude>
+    <ClInclude Include="lz4\xxhash.h">
+      <Filter>lz4</Filter>
+    </ClInclude>
+    <ClInclude Include="lz4\lz4.h">
+      <Filter>lz4</Filter>
+    </ClInclude>
+    <ClInclude Include="Lzma\7zFile.h">
+      <Filter>Lzma</Filter>
+    </ClInclude>
+    <ClInclude Include="Lzma\7zTypes.h">
+      <Filter>Lzma</Filter>
+    </ClInclude>
+    <ClInclude Include="Lzma\7zVersion.h">
+      <Filter>Lzma</Filter>
+    </ClInclude>
+    <ClInclude Include="Lzma\Alloc.h">
+      <Filter>Lzma</Filter>
+    </ClInclude>
+    <ClInclude Include="Lzma\Compiler.h">
+      <Filter>Lzma</Filter>
+    </ClInclude>
+    <ClInclude Include="Lzma\CpuArch.h">
+      <Filter>Lzma</Filter>
+    </ClInclude>
+    <ClInclude Include="Lzma\LzFind.h">
+      <Filter>Lzma</Filter>
+    </ClInclude>
+    <ClInclude Include="Lzma\LzFindMt.h">
+      <Filter>Lzma</Filter>
+    </ClInclude>
+    <ClInclude Include="Lzma\LzHash.h">
+      <Filter>Lzma</Filter>
+    </ClInclude>
+    <ClInclude Include="Lzma\LzmaDec.h">
+      <Filter>Lzma</Filter>
+    </ClInclude>
+    <ClInclude Include="Lzma\LzmaEnc.h">
+      <Filter>Lzma</Filter>
+    </ClInclude>
+    <ClInclude Include="Lzma\Precomp.h">
+      <Filter>Lzma</Filter>
+    </ClInclude>
+    <ClInclude Include="Lzma\Threads.h">
+      <Filter>Lzma</Filter>
+    </ClInclude>
+    <ClInclude Include="AssetBundleDecoder.h" />
+  </ItemGroup>
+</Project>
