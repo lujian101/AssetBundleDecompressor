@@ -27,6 +27,8 @@ email: lujian_niewa@sina.com, 345005607@qq.com
 
 /*unity's uncompressed assetbundle's header always be compressed.*/
 #define KEEP_COMPRESSED_BUNDLE_HEADER 0
+/*append 0 if uncompressed file size is smaller than bundleSize declared in header.*/
+#define PADDING_UNCOMPRESSED_FILE_SIZE 1
 
 static RequireDiskSpaceHook _Hook = NULL;
 
@@ -391,13 +393,14 @@ static const char* GetSResString( SRes res ) {
 	return sret;
 }
 
-#if KEEP_COMPRESSED_BUNDLE_HEADER
 static void _mwrite_int32( char** p, Int32 value ) {
 	Byte* bytes = ( Byte* )&value;
 	Int32 _value = ( bytes[ 0 ] << 24 ) | ( bytes[ 1 ] << 16 ) | ( bytes[ 2 ] << 8 ) | bytes[ 3 ];
 	memcpy( *p, &_value, sizeof( Int32 ) );
 	*p += sizeof( Int32 );
 }
+
+#if KEEP_COMPRESSED_BUNDLE_HEADER
 static void _mwrite_int16( char** p, Int16 value ) {
 	Byte* bytes = ( Byte* )&value;
 	Int16 _value = ( bytes[ 0 ] << 8 ) | bytes[ 1 ];
@@ -493,6 +496,7 @@ static int _AB_Decompress_UnityFS( CFileSeqInStream* inStream, const char* input
 	UInt64 fileSize;
 	int outUncompressedFileSize = 0;
 	int finalOutFileSize = 0;
+	Int64 outFilePadding = 0;
 	ChunkBasedBundleHeader_t header;
 	memset( &header, 0, sizeof( header ) );
 	AB_ReadChunkBasedBundleHeader( &header, &inStream->file );
@@ -722,12 +726,13 @@ static int _AB_Decompress_UnityFS( CFileSeqInStream* inStream, const char* input
 			if ( chunkInfoBytes != NULL ) {
 				int blockCount;
 				int i, uncompressSize, compressSize, flag;
-				const char* blockInfoPtr = chunkInfoBytes;
+				char* blockInfoPtr = chunkInfoBytes;
 				SRes ret;
 				blockInfoPtr += 16; /*16 bytes GUID here*/
 				blockCount = _mread_int( &blockInfoPtr );
 				for ( i = 0; i < blockCount; ++i ) {
 					int ok = 0;
+					char* p_uncompressSize = blockInfoPtr;
 					uncompressSize = _mread_int( &blockInfoPtr );
 					compressSize = _mread_int( &blockInfoPtr );
 					flag = _mread_int16( &blockInfoPtr ) & 0x3f;
@@ -738,12 +743,27 @@ static int _AB_Decompress_UnityFS( CFileSeqInStream* inStream, const char* input
 					case 1: {
 							CLzmaDec state;
 							unsigned char header[ LZMA_PROPS_SIZE ];
+							Int64 outBegin, outEnd;
+							outBegin = 0;
+							outEnd = 0;
 							RINOK( SeqInStream_Read( &inStream->s, header, sizeof( header ) ) );
 							LzmaDec_Construct( &state );
 							RINOK( LzmaDec_Allocate( &state, header, LZMA_PROPS_SIZE, &g_Alloc ) );
-							ret = Decode2( &state, &outStream.s, &inStream->s, uncompressSize );
+							outBegin = 0;
+							File_Seek( ofp, &outBegin, SZ_SEEK_CUR );
+							ret = Decode2( &state, &outStream.s, &inStream->s, -1 );
+							outEnd = 0;
+							File_Seek( ofp, &outEnd, SZ_SEEK_CUR );
 							LzmaDec_Free( &state, &g_Alloc );
 							ok = ret == SZ_OK;
+							if ( ok ) {
+								Int64 realUncompressSize = outEnd - outBegin;
+								outFilePadding = ( Int64 )( uncompressSize - ( outEnd - outBegin ) );
+								if ( outFilePadding > 0 ) {
+									/*fix block's uncompress size*/
+									_mwrite_int32( &p_uncompressSize, ( Int32 )realUncompressSize );
+								}
+							}
 						}
 						break;
 					case 2:
@@ -765,6 +785,38 @@ static int _AB_Decompress_UnityFS( CFileSeqInStream* inStream, const char* input
 			}
 			/*check output file*/
 			{
+#if PADDING_UNCOMPRESSED_FILE_SIZE
+				/*check uncompress data size*/
+				/*we need pad file size if uncompress size is smaller than size declared in file header*/
+				char dummy[ OUT_BUF_SIZE ];
+				Int64 clearnum;
+				size_t outPadding = ( size_t )outFilePadding;
+				clearnum = min( sizeof( dummy ), outPadding );
+				memset( dummy, 0, ( size_t )clearnum );
+				while ( outPadding > 0 ) {
+					size_t n = min( outPadding, sizeof( dummy ) );
+					outPadding -= n;
+					File_Write( ofp, dummy, &n );
+				}
+#else
+				finalOutFileSize -= ( int )outFilePadding;
+				{
+					/*fix bundle size*/
+					Int64 pos = 0;
+					Int64 cur = 0;
+					header.bundleSize -= outFilePadding;
+					File_Seek( ofp, &cur, SZ_SEEK_CUR );
+					File_Seek( ofp, &pos, SZ_SEEK_SET );
+					AB_WriteChunkBasedBundleHeader( &header, ofp );
+					/*fix block info*/
+					assert( ( header.flag & 0x3f ) == 0 );
+					assert( header.chunkInfoCompressedSize == header.chunkInfoUncompressedSize );
+					/*write original chunk info directly for uncompressed data*/
+					File_Write( ofp, chunkInfoBytes, &chunkInfoSize );
+					/*restore stream position*/
+					File_Seek( ofp, &cur, SZ_SEEK_SET );
+				}
+#endif
 				Int64 pos = 0;
 				File_Seek( ofp, &pos, SZ_SEEK_CUR );
 				if ( pos != finalOutFileSize ) {
