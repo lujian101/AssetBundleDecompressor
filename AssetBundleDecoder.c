@@ -496,6 +496,7 @@ static int _AB_Decompress_UnityFS( CFileSeqInStream* inStream, const char* input
 	UInt64 fileSize;
 	int outUncompressedFileSize = 0;
 	int finalOutFileSize = 0;
+	int align16Padding = 0;
 	Int64 outFilePadding = 0;
 	ChunkBasedBundleHeader_t header;
 	memset( &header, 0, sizeof( header ) );
@@ -521,6 +522,17 @@ static int _AB_Decompress_UnityFS( CFileSeqInStream* inStream, const char* input
 					chunkMemType = 1;
 				} else {
 					chunkInfoBytes = ( char* )malloc( chunkInfoSize );
+				}
+			}
+			if ( header.streamVersion >= 7 ) {
+				Int64 curPos = 0;
+				Int64 mod;
+				File_Seek( fp, &curPos, SZ_SEEK_CUR );
+				mod = curPos % 16;
+				if ( mod > 0 ) {
+					align16Padding = 16 - ( int )mod;
+					curPos += 16 - mod;
+					File_Seek( fp, &curPos, SZ_SEEK_SET );
 				}
 			}
 			/*jump to EOF*/
@@ -605,6 +617,7 @@ static int _AB_Decompress_UnityFS( CFileSeqInStream* inStream, const char* input
 					int requireSize = ( int )( header.headerSize + chunkInfoSize + outUncompressedFileSize );
 					finalOutFileSize = requireSize;
 					header.bundleSize = finalOutFileSize;
+					requireSize += align16Padding;
 					if ( 0 == RequireDiskSpace( requireSize, context ) ) {
 						result = ABDEC_ERROR_DISKSPACE_FAIL;
 						break;
@@ -694,6 +707,19 @@ static int _AB_Decompress_UnityFS( CFileSeqInStream* inStream, const char* input
 					header.flag &= ~0x3f;
 					header.chunkInfoCompressedSize = header.chunkInfoUncompressedSize;
 					AB_WriteChunkBasedBundleHeader( &header, ofp );
+				}
+				if ( header.streamVersion >= 7 ) {
+					Int64 curPos = 0;
+					size_t mod;
+					File_Seek( ofp, &curPos, SZ_SEEK_CUR );
+					mod = curPos % 16;
+					if ( mod != 0 ) {
+						Byte padding[ 16 ];
+						mod = 16 - mod;
+						assert( mod == align16Padding );
+						memset( padding, 0, mod );
+						File_Write( ofp, padding, &mod );
+					}
 				}
 				Int64 curPos = 0, postPos = 0;
 				File_Seek( ofp, &curPos, SZ_SEEK_CUR );
@@ -819,6 +845,7 @@ static int _AB_Decompress_UnityFS( CFileSeqInStream* inStream, const char* input
 #endif
 				Int64 pos = 0;
 				File_Seek( ofp, &pos, SZ_SEEK_CUR );
+				finalOutFileSize += align16Padding;
 				if ( pos != finalOutFileSize ) {
 					result = ABDEC_ERROR_DEC_FAILED;
 				}
